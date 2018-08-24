@@ -11,7 +11,7 @@ Adjust the lightness of a color value.
 ## Parameters
 
 * *`color`* Any valid CSS color value
-* *`offset`* The percentage to offset the color hue (percent mark optional)
+* *`offset`* The percentage to offset the color lightness (percent mark optional)
 
 ## Returns
 
