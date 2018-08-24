@@ -8,13 +8,13 @@ namespace CssCrush;
 
 class Crush
 {
-    // Global settings.
+    /** @var \stdClass Global settings. */
     public static $config;
 
-    // The current active process.
+    /** @var Process The current active process */
     public static $process;
 
-    // Library root directory.
+    /** @var string Library root directory */
     public static $dir;
 
     public static function init()

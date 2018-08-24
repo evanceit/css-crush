@@ -23,6 +23,7 @@ class Functions
         'a-adjust' => 'CssCrush\fn__a_adjust',
     );
 
+    /** @var array */
     public $register = [];
 
     protected $pattern;
@@ -128,7 +129,11 @@ class Functions
     */
     public static function parseArgsSimple($input)
     {
-        return preg_split(Regex::$patt->argListSplit, $input, 2);
+        $args = preg_split(Regex::$patt->argListSplit, $input, 2);
+        if (!isset($args[1])) {
+            $args[1] = null;
+        }
+        return $args;
     }
 
     public static function makePattern($functionNames)
@@ -207,34 +212,103 @@ function fn__math($input) {
     return ($result === false ? 0 : round($result, 5)) . $unit;
 }
 
-function fn__hsla_adjust($input) {
+/**
+ * Manipulate the hue, saturation, lightness and opacity of a color value.
+ * @param string $input
+ * @return string The modified color value.
+ */
+function fn__hsla_adjust($input)
+{
     list($color, $h, $s, $l, $a) = array_pad(Functions::parseArgs($input, true), 5, 0);
-    return Color::test($color) ? Color::colorAdjust($color, array($h, $s, $l, $a)) : '';
+    return fn__color_adjust($color, $h, $s, $l, $a);
 }
 
-function fn__hsl_adjust($input) {
+/**
+ * Manipulate the hue, saturation, and lightness of a color value.
+ * @param string $input
+ * @return string The modified color value.
+ */
+function fn__hsl_adjust($input)
+{
     list($color, $h, $s, $l) = array_pad(Functions::parseArgs($input, true), 4, 0);
-    return Color::test($color) ? Color::colorAdjust($color, array($h, $s, $l, 0)) : '';
+    return fn__color_adjust($color, $h, $s, $l, 0);
 }
 
-function fn__h_adjust($input) {
+/**
+ * Adjust the hue of a color value.
+ * @param string $input
+ * @return string The modified color value.
+ */
+function fn__h_adjust($input)
+{
     list($color, $h) = array_pad(Functions::parseArgs($input, true), 2, 0);
-    return Color::test($color) ? Color::colorAdjust($color, array($h, 0, 0, 0)) : '';
+    return fn__color_adjust($color, $h, 0, 0, 0);
 }
 
-function fn__s_adjust($input) {
+/**
+ * Adjust the saturation of a color value.
+ * @param string $input
+ * @return string The modified color value.
+ */
+function fn__s_adjust($input)
+{
     list($color, $s) = array_pad(Functions::parseArgs($input, true), 2, 0);
-    return Color::test($color) ? Color::colorAdjust($color, array(0, $s, 0, 0)) : '';
+    return fn__color_adjust($color, 0, $s, 0, 0);
 }
 
-function fn__l_adjust($input) {
+/**
+ * Adjust the lightness of a color value.
+ * @param string $input
+ * @return string The modified color value.
+ */
+function fn__l_adjust($input)
+{
     list($color, $l) = array_pad(Functions::parseArgs($input, true), 2, 0);
-    return Color::test($color) ? Color::colorAdjust($color, array(0, 0, $l, 0)) : '';
+    return fn__color_adjust($color, 0, 0, $l, 0);
 }
 
-function fn__a_adjust($input) {
+/**
+ * Manipulate the opacity (alpha channel) of a color value.
+ * @param $input
+ * @return string The modified color value.
+ */
+function fn__a_adjust($input)
+{
     list($color, $a) = array_pad(Functions::parseArgs($input, true), 2, 0);
-    return Color::test($color) ? Color::colorAdjust($color, array(0, 0, 0, $a)) : '';
+    return fn__color_adjust($color, 0, 0, 0, $a);
+}
+
+/**
+ * Manipulate the hue, saturation, lightness and opacity of a color value.
+ *
+ * Emits two events:
+ * - 'color_adjust_before' allow plugins to intercept color prior to color test and adjustment.
+ * - 'color_adjust_after' allow plugins to intercept color after adjustment.
+ *
+ * @param string $color Any valid CSS color value
+ * @param string|float $h The percentage to offset the color hue (percent mark optional)
+ * @param string|float $s The percentage to offset the color saturation (percent mark optional)
+ * @param string|float $l The percentage to offset the color lightness (percent mark optional)
+ * @param string|float $a The percentage to offset the color opacity (percent mark optional)
+ * @return string The modified color value.
+ */
+function fn__color_adjust($color, $h, $s, $l, $a) {
+    Crush::$process->emit('color_adjust_before', array(
+        'color' => &$color,
+        'h' => &$h,
+        's' => &$s,
+        'l' => &$l,
+        'a' => &$a
+    ));
+    $adjustedColor = Color::test($color) ? Color::colorAdjust($color, array($h, $s, $l, $a)) : '';
+    Crush::$process->emit('color_adjust_after', array(
+        'color' => &$adjustedColor,
+        'h' => $h,
+        's' => $s,
+        'l' => $l,
+        'a' => $a
+    ));
+    return $adjustedColor;
 }
 
 function fn__this($input, $context) {

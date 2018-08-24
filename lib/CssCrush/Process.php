@@ -406,11 +406,12 @@ class Process
     {
         static $varFunction, $varFunctionSimple;
         if (! $varFunction) {
-            $varFunctionSimple = Regex::make('~\$\( \s* ({{ ident }}) \s* \)~xS');
+            $varFunctionSimple = Regex::make('~(\'|\")?\$\( \s* ({{ ident }}) \s* \)(\'|\")?~xS');
             $varFunction = new Functions(['$' => function ($rawArgs) {
                 list($name, $defaultValue) = Functions::parseArgsSimple($rawArgs);
                 if (isset(Crush::$process->vars[$name])) {
-                    return Crush::$process->vars[$name];
+                    $varValue = Crush::$process->vars[$name];
+                    return $varValue;
                 }
                 else {
                     return $defaultValue;
@@ -420,9 +421,16 @@ class Process
 
         // Variables with no default value.
         $value = preg_replace_callback($varFunctionSimple, function ($m) {
-            $varName = $m[1];
+            $quote = $m[1];
+            $varName = $m[2];
             if (isset(Crush::$process->vars[$varName])) {
-                return Crush::$process->vars[$varName];
+                $varValue = Crush::$process->vars[$varName];
+                $this->emit('place_var', array(
+                    'name' => $varName,
+                    'value' => &$varValue,
+                    'quote' => $quote
+                ));
+                return $varValue;
             }
         }, $value, -1, $varsPlaced);
 

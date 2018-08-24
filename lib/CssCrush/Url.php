@@ -48,8 +48,13 @@ class Url
         if ($this->isData || preg_match('~[()*\s]~S', $this->value)) {
             $quote = '"';
         }
-
-        return "url($quote$this->value$quote)";
+        $value = "url({$quote}{$this->value}{$quote})";
+        Crush::$process->emit('url_toString', [
+            'url' => &$this,
+            'string' => &$value,
+            'quote' => $quote
+        ]);
+        return $value;
     }
 
     public function update($new_value)
@@ -61,6 +66,9 @@ class Url
 
     public function evaluate()
     {
+        Crush::$process->emit('url_evaluate_before', [
+            'url' => &$this
+        ]);
         // Protocol, protocol-relative (//) or fragment URL.
         if (preg_match('~^(?: (?<protocol>[a-z]+)\: | \/{2} | \# )~ix', $this->value, $m)) {
 
@@ -92,7 +100,9 @@ class Url
         }
 
         $this->setType($type);
-
+        Crush::$process->emit('url_evaluate_after', [
+            'url' => &$this
+        ]);
         return $this;
     }
 
